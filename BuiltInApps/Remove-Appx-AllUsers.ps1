@@ -3,7 +3,14 @@
     Remove built-in apps (modern apps) from Windows 11 for All Users.
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'black-list' in this script.
-.EXAMPLE
+
+    ##WARNING## 
+    Use with caution, restoring deleted proisioning packages is not a simple process.
+
+    ##TIP##
+    If removing "MicrosoftTeams", also consider disabling the "Chat" icon on the taskbar as clicking this will re-install the appxpackage for the user.
+
+    .EXAMPLE
     .\Remove-Appx-AllUsers.ps1
 .NOTES
 
