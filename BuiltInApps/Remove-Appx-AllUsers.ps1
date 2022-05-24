@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Remove built-in apps (modern apps) from Windows 11.
+    Remove built-in apps (modern apps) from Windows 11 for All Users.
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'black-list' in this script.
 .EXAMPLE
@@ -99,18 +99,18 @@ Begin {
     Function Remove-AppxProvisionedPackageCustom {
 
         # Attempt to remove AppxProvisioningPackage
-        if (!([string]::IsNullOrEmpty($App))) {
+        if (!([string]::IsNullOrEmpty($BlackListedApp))) {
             try {
-
+            
                 # Get Package Name
-                $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $App } | Select-Object -ExpandProperty PackageName -First 1
-                Write-Host "$($App) found. Attempting removal ... " -NoNewline
+                $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
+                Write-Host "$($BlackListedApp) found. Attempting removal ... " -NoNewline
 
                 # Attempt removeal
                 $RemoveAppx = Remove-AppxProvisionedPackage -PackageName $AppProvisioningPackageName -Online -AllUsers
                 
                 #Re-check existence
-                $AppProvisioningPackageNameReCheck = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $App } | Select-Object -ExpandProperty PackageName -First 1
+                $AppProvisioningPackageNameReCheck = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
 
                 If ([string]::IsNullOrEmpty($AppProvisioningPackageNameReCheck) -and ($RemoveAppx.Online -eq $true)) {
                     Write-Host @CheckIcon
@@ -151,28 +151,26 @@ Process {
         $AppArray = Get-AppxProvisionedPackage -Online | Select-Object -ExpandProperty DisplayName
 
         # Loop through each Provisioned Package
-        foreach ($App in $AppArray) {
+        foreach ($BlackListedApp in $BlackListedApps) {
 
             # Function call to Remove Appx Provisioned Packages defined in the Black List
-            if (($App -in $BlackListedApps)) {
+            if (($BlackListedApp -in $AppArray)) {
                 $AppCount ++
-                Remove-AppxProvisionedPackageCustom -App $App
+                Remove-AppxProvisionedPackageCustom -BlackListedApp $BlackListedApp
             }
             else {
-                $AppNotTargetedList.AddRange(@($App))
+                $AppNotTargetedList.AddRange(@($BlackListedApp))
             }
         }
 
         #Update Output Information
-        If (!($Null -eq $AppNotTargetedList)) { 
-            Write-Output `n"The following apps were not targeted for removal:-"
+        If (!([string]::IsNullOrEmpty($AppNotTargetedList))) { 
+            Write-Output `n"The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-Output ""
             $AppNotTargetedList
         }
         If ($AppCount -eq 0) {
             Write-Output `n"No apps were removed. Most likely reason is they had been removed previously."
-        }
-        else {
-            Write-Output `n"$AppCount app(s) out of $($BlackListedApps.Count) were removed."
         }
     }
     else {
