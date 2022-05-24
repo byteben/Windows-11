@@ -81,7 +81,8 @@ Begin {
             "Microsoft.XboxSpeechToTextOverlay",
             "Microsoft.YourPhone",
             "Microsoft.ZuneMusic",
-            "Microsoft.ZuneVideo"
+            "Microsoft.ZuneVideo",
+            "MicrosoftTeams"
         ))
 
     #Define Icons
