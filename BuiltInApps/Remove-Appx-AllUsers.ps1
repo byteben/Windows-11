@@ -2,7 +2,8 @@
 .SYNOPSIS
     Remove built-in apps (modern apps) from Windows 11 for All Users.
 .DESCRIPTION
-    This script will remove all built-in apps with a provisioning package that are specified in the 'black-list' in this script.
+    This script will remove all built-in apps with a provisioning package that are specified in the 'blacklistedapps' variable.
+    The Black list is hosted in Azure Blob storage so it can be dynamically updated
 
     ##WARNING## 
     Use with caution, restoring deleted proisioning packages is not a simple process.
@@ -74,8 +75,21 @@ MicrosoftWindows.Client.WebExperience
 Begin {
 
     # Black List of Appx Provisioned Packages to Remove for All Users
-    $BlackListedApps = $null
-    $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
+    $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist.xml"
+
+    Try {
+        [xml]$BlackListedAppsXML = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
+        $BlackListedApps = $BlackListedAppsXML.xml.app
+    } 
+    Catch {
+        Write-Warning "$($Error[0])"
+        Write-Warning "Unable to obtain BlackListedApps from "$($BlackListedAppsURL)""
+    }
+    
+    
+
+    #Static array before using the XML method in Azure storage
+    <# $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
     $BlackListedApps.AddRange(@(
             "Microsoft.BingNews",
             "Microsoft.GamingApp",
@@ -91,6 +105,7 @@ Begin {
             "Microsoft.ZuneVideo",
             "MicrosoftTeams"
         ))
+        #>
 
     #Define Icons
     $CheckIcon = @{
