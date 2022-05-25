@@ -77,16 +77,22 @@ Begin {
     # Black List of Appx Provisioned Packages to Remove for All Users
     $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist.xml"
 
+    #Attempt to obtain XML of BlackListedApps
     Try {
-        [xml]$BlackListedAppsXML = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
-        $BlackListedApps = $BlackListedAppsXML.xml.app
+        $BlackListedAppsXML = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
     } 
     Catch {
-        Write-Warning "$($Error[0])"
         Write-Warning "Unable to obtain BlackListedApps from "$($BlackListedAppsURL)""
     }
-    
-    
+
+    #Test XML validity
+    Try {
+        $BlackListedApps = [xml]$BlackListedAppsXML
+        $BlackListedAppsArray = $BlackListedApps.xml.app
+    }
+    Catch {
+        Write-Warning "Unable to read xml. Ensure the following xml tags are in the following format: <xml><app>APPNAME</app></xml>"
+    }
 
     #Static array before using the XML method in Azure storage
     <# $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
@@ -158,11 +164,11 @@ Begin {
 
 Process {
 
-    If ($($BlackListedApps.Count) -ne 0) {
+    If ($($BlackListedAppsArray.Count) -ne 0) {
 
-        Write-Output `n"The following $($BlackListedApps.Count) apps were targeted for removal from the device:-"
+        Write-Output `n"The following $($BlackListedAppsArray.Count) apps were targeted for removal from the device:-"
         Write-Output ""
-        $BlackListedApps
+        $BlackListedAppsArray
 
         #Initialize list for apps not targeted
         $AppNotTargetedList = New-Object -TypeName System.Collections.ArrayList
@@ -173,7 +179,7 @@ Process {
         $AppArray = Get-AppxProvisionedPackage -Online | Select-Object -ExpandProperty DisplayName
 
         # Loop through each Provisioned Package
-        foreach ($BlackListedApp in $BlackListedApps) {
+        foreach ($BlackListedApp in $BlackListedAppsArray) {
 
             # Function call to Remove Appx Provisioned Packages defined in the Black List
             if (($BlackListedApp -in $AppArray)) {
