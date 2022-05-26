@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
     Remove built-in apps (modern apps) from Windows 11 for All Users.
-    
+
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'blacklistedapps' variable.
     The Black list (txt file) is hosted in Azure Blob storage or GitHub so it can be dynamically update
@@ -18,7 +18,7 @@
     Based on original script / Credit to: Nickolaj Andersen @ MSEndpointMgr
     Modifications to original script to Black list Appx instead of Whitelist
 
-    FileName:    Remove-Appx-AllUsers.ps1
+    FileName:    Remove-Appx-AllUsers-CloudSourceList.ps1
     Author:      Ben Whitmore
     Contact:     @byteben
     Date:        23rd May 2022
