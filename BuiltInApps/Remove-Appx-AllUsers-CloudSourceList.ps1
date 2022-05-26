@@ -3,7 +3,8 @@
     Remove built-in apps (modern apps) from Windows 11 for All Users.
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'blacklistedapps' variable.
-    The Black list is hosted in Azure Blob storage or GitHub so it can be dynamically updated
+    The Black list (txt file) is hosted in Azure Blob storage or GitHub so it can be dynamically update
+    Built-in apps listed in the txt file that are not prefixed with a # will be considered eligible for removal
 
     ##WARNING## 
     Use with caution, restoring deleted proisioning packages is not a simple process.
@@ -23,68 +24,21 @@
     Contact:     @byteben
     Date:        23rd May 2022
 
-Contents of txt file in Cloud Storage
-<--begin txt file
-##Built-in apps listed below that are not prefixed with a # will be considered eligible for removal##
-#Microsoft.549981C3F5F10
-Microsoft.BingNews
-#Microsoft.BingWeather
-#Microsoft.DesktopAppInstaller
-Microsoft.GamingApp
-#Microsoft.GetHelp
-Microsoft.Getstarted
-#Microsoft.HEIFImageExtension
-#Microsoft.MicrosoftEdge.Stable
-#Microsoft.MicrosoftOfficeHub
-Microsoft.MicrosoftSolitaireCollection
-#Microsoft.MicrosoftStickyNotes
-#Microsoft.Paint
-#Microsoft.People
-#Microsoft.PowerAutomateDesktop
-#Microsoft.ScreenSketch
-#Microsoft.SecHealthUI
-#Microsoft.StorePurchaseApp
-#Microsoft.Todos
-#Microsoft.UI.Xaml.2.4
-#Microsoft.VCLibs.140.00
-#Microsoft.VP9VideoExtensions
-#Microsoft.WebMediaExtensions
-#Microsoft.WebpImageExtension
-#Microsoft.Windows.Photos
-#Microsoft.WindowsAlarms
-#Microsoft.WindowsCalculator
-#Microsoft.WindowsCamera
-Microsoft.WindowsCommunicationsApps
-Microsoft.WindowsFeedbackHub
-#Microsoft.WindowsMaps
-#Microsoft.WindowsNotepad
-#Microsoft.WindowsSoundRecorder
-#Microsoft.WindowsStore
-#Microsoft.WindowsTerminal
-#Microsoft.Xbox.TCUI
-Microsoft.XboxGameOverlay
-Microsoft.XboxGamingOverlay
-Microsoft.XboxIdentityProvider
-Microsoft.XboxSpeechToTextOverlay
-Microsoft.YourPhone
-Microsoft.ZuneMusic
-Microsoft.ZuneVideo
-MicrosoftTeams
-#MicrosoftWindows.Client.WebExperience
-end txt file-->
 #>
 
 Begin {
 
     # Black List of Appx Provisioned Packages to Remove for All Users
+    $BlackListedAppsURL = $null
     $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist_w11.txt"
 
     #Attempt to obtain list of BlackListedApps
     Try {
+        $BlackListedAppsFile = $null
         $BlackListedAppsFile = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
     } 
     Catch {
-        Write-Warning "Unable to obtain BlackListedApps files from "$($BlackListedAppsURL)""
+        Write-Warning $_.Exception
     }
 
     #Read apps from file and split lines
