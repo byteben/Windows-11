@@ -3,7 +3,7 @@
     Remove built-in apps (modern apps) from Windows 11 for All Users.
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'blacklistedapps' variable.
-    The Black list is hosted in Azure Blob storage so it can be dynamically updated
+    The Black list is hosted in Azure Blob storage or GitHub so it can be dynamically updated
 
     ##WARNING## 
     Use with caution, restoring deleted proisioning packages is not a simple process.
@@ -23,44 +23,45 @@
     Contact:     @byteben
     Date:        23rd May 2022
 
-###### Windows 11 Apps######
-
-Microsoft.549981C3F5F10 (Cortana Search)
+Contents of txt file in Cloud Storage
+<--begin txt file
+##Built-in apps listed below that are not prefixed with a # will be considered eligible for removal##
+#Microsoft.549981C3F5F10
 Microsoft.BingNews
-Microsoft.BingWeather
-Microsoft.DesktopAppInstaller
+#Microsoft.BingWeather
+#Microsoft.DesktopAppInstaller
 Microsoft.GamingApp
-Microsoft.GetHelp
+#Microsoft.GetHelp
 Microsoft.Getstarted
-Microsoft.HEIFImageExtension
-Microsoft.MicrosoftEdge.Stable
-Microsoft.MicrosoftOfficeHub
+#Microsoft.HEIFImageExtension
+#Microsoft.MicrosoftEdge.Stable
+#Microsoft.MicrosoftOfficeHub
 Microsoft.MicrosoftSolitaireCollection
-Microsoft.MicrosoftStickyNotes
-Microsoft.Paint
-Microsoft.People
-Microsoft.PowerAutomateDesktop
-Microsoft.ScreenSketch
-Microsoft.SecHealthUI
-Microsoft.StorePurchaseApp
-Microsoft.Todos
-Microsoft.UI.Xaml.2.4
-Microsoft.VCLibs.140.00
-Microsoft.VP9VideoExtensions
-Microsoft.WebMediaExtensions
-Microsoft.WebpImageExtension
-Microsoft.Windows.Photos
-Microsoft.WindowsAlarms
-Microsoft.WindowsCalculator
-Microsoft.WindowsCamera
-microsoft.windowscommunicationsapps
+#Microsoft.MicrosoftStickyNotes
+#Microsoft.Paint
+#Microsoft.People
+#Microsoft.PowerAutomateDesktop
+#Microsoft.ScreenSketch
+#Microsoft.SecHealthUI
+#Microsoft.StorePurchaseApp
+#Microsoft.Todos
+#Microsoft.UI.Xaml.2.4
+#Microsoft.VCLibs.140.00
+#Microsoft.VP9VideoExtensions
+#Microsoft.WebMediaExtensions
+#Microsoft.WebpImageExtension
+#Microsoft.Windows.Photos
+#Microsoft.WindowsAlarms
+#Microsoft.WindowsCalculator
+#Microsoft.WindowsCamera
+Microsoft.WindowsCommunicationsApps
 Microsoft.WindowsFeedbackHub
-Microsoft.WindowsMaps
-Microsoft.WindowsNotepad
-Microsoft.WindowsSoundRecorder
-Microsoft.WindowsStore
-Microsoft.WindowsTerminal
-Microsoft.Xbox.TCUI
+#Microsoft.WindowsMaps
+#Microsoft.WindowsNotepad
+#Microsoft.WindowsSoundRecorder
+#Microsoft.WindowsStore
+#Microsoft.WindowsTerminal
+#Microsoft.Xbox.TCUI
 Microsoft.XboxGameOverlay
 Microsoft.XboxGamingOverlay
 Microsoft.XboxIdentityProvider
@@ -69,49 +70,33 @@ Microsoft.YourPhone
 Microsoft.ZuneMusic
 Microsoft.ZuneVideo
 MicrosoftTeams
-MicrosoftWindows.Client.WebExperience
+#MicrosoftWindows.Client.WebExperience
+end txt file-->
 #>
 
 Begin {
 
     # Black List of Appx Provisioned Packages to Remove for All Users
-    $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist.xml"
+    $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist_w11.txt"
 
-    #Attempt to obtain XML of BlackListedApps
+    #Attempt to obtain list of BlackListedApps
     Try {
-        $BlackListedAppsXML = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
+        $BlackListedAppsFile = (New-Object System.Net.WebClient).DownloadString($BlackListedAppsURL)
     } 
     Catch {
-        Write-Warning "Unable to obtain BlackListedApps from "$($BlackListedAppsURL)""
+        Write-Warning "Unable to obtain BlackListedApps files from "$($BlackListedAppsURL)""
     }
 
-    #Test XML validity
-    Try {
-        $BlackListedApps = [xml]$BlackListedAppsXML
-        $BlackListedAppsArray = $BlackListedApps.xml.app
+    #Read apps from file and split lines
+    $BlackListedAppsConvertToArray = $BlackListedAppsFile -split "`n" | Foreach-Object { $_.trim() }
+    
+    #Create array of bad apps
+    $BlackListedAppsArray = New-Object -TypeName System.Collections.ArrayList
+    Foreach ($App in $BlackListedAppsConvertToArray) {
+        If (!($App -like "#*")) {
+            $BlackListedAppsArray.AddRange(@($App))
+        }
     }
-    Catch {
-        Write-Warning "Unable to read xml. Ensure the following xml tags are in the following format: <xml><app>APPNAME</app></xml>"
-    }
-
-    #Static array before using the XML method in Azure storage
-    <# $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
-    $BlackListedApps.AddRange(@(
-            "Microsoft.BingNews",
-            "Microsoft.GamingApp",
-            "Microsoft.MicrosoftSolitaireCollection",
-            "Microsoft.WindowsCommunicationsApps",
-            "Microsoft.WindowsFeedbackHub",
-            "Microsoft.XboxGameOverlay",
-            "Microsoft.XboxGamingOverlay",
-            "Microsoft.XboxIdentityProvider",
-            "Microsoft.XboxSpeechToTextOverlay",
-            "Microsoft.YourPhone",
-            "Microsoft.ZuneMusic",
-            "Microsoft.ZuneVideo",
-            "MicrosoftTeams"
-        ))
-        #>
 
     #Define Icons
     $CheckIcon = @{
