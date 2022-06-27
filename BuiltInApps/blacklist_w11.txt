@@ -42,7 +42,7 @@ Microsoft.WindowsTerminal
 #Microsoft.XboxIdentityProvider
 #Microsoft.XboxSpeechToTextOverlay
 #Microsoft.YourPhone
-Microsoft.ZuneMusic
-Microsoft.ZuneVideo
+#Microsoft.ZuneMusic
+#Microsoft.ZuneVideo
 #MicrosoftTeams
 MicrosoftWindows.Client.WebExperience
