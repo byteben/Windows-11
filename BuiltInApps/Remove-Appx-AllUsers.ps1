@@ -135,6 +135,10 @@ Begin {
         }
     }
 
+    Write-LogEntry -Value "##################################"
+    Write-LogEntry -Stamp -Value "Remove-Appx Started"
+    Write-LogEntry -Value "##################################"
+
     #OS Check
     $OS = (Get-CimInstance -ClassName Win32_OperatingSystem).BuildNumber
     Switch -Wildcard ( $OS ) {
