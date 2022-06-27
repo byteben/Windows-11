@@ -112,6 +112,7 @@ Begin {
     $BlackListedAppsArray = New-Object -TypeName System.Collections.ArrayList
     Foreach ($App in $BlackListedAppsConvertToArray) {
         If ($App -like "#*") {
+            $App = $App.trimStart("#")
             $BlackListedAppsArray.AddRange(@($App))
         }
     }
