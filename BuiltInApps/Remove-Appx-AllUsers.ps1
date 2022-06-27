@@ -114,6 +114,7 @@ Begin {
                 # Get Package Name
                 $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
                 Write-Host "$($BlackListedApp) found. Attempting removal ... " -NoNewline
+                Write-LogEntry -Value "$($BlackListedApp) found. Attempting removal ... "
 
                 # Attempt removeal
                 $RemoveAppx = Remove-AppxProvisionedPackage -PackageName $AppProvisioningPackageName -Online -AllUsers
@@ -124,10 +125,12 @@ Begin {
                 If ([string]::IsNullOrEmpty($AppProvisioningPackageNameReCheck) -and ($RemoveAppx.Online -eq $true)) {
                     Write-Host @CheckIcon
                     Write-Host " (Removed)"
+                    Write-LogEntry -Value "$($BlackListedApp) removed"
                 }
             }
             catch [System.Exception] {
                 Write-Host " (Failed)"
+                Write-LogEntry -Value "Failed to remove $($BlackListedApp)"
             }
         }
     }
@@ -138,6 +141,7 @@ Begin {
         '21*' {
             $OSVer = "Windows 10"
             Write-Warning "This script is intended for use on Windows 11 devices. $($OSVer) was detected..."
+            Write-LogEntry -Value "This script is intended for use on Windows 11 devices. $($OSVer) was detected..."
             Exit 1
         }
     }
@@ -169,6 +173,7 @@ Begin {
  
     #Define App Count
     [int]$AppCount = 0
+
 }
 
 Process {
@@ -211,8 +216,8 @@ Process {
 
         #Update Output Information
         If (!([string]::IsNullOrEmpty($AppNotTargetedList))) { 
-            Write-Output `n"The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
-            Write-LogEntry -Value "The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-Output `n"The following apps were not removed. Either they were already removed or the Package Name is invalid:-"
+            Write-LogEntry -Value "The following apps were not removed. Either they were already removed or the Package Name is invalid:-"
             Write-LogEntry -Value "$($AppNotTargetedList)"
             Write-Output ""
             $AppNotTargetedList
