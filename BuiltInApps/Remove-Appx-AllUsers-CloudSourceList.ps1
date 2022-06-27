@@ -69,6 +69,7 @@ Begin {
                 # Get Package Name
                 $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
                 Write-Host "$($BlackListedApp) found. Attempting removal ... " -NoNewline
+                Write-LogEntry -Value "$($BlackListedApp) found. Attempting removal ... "
     
                 # Attempt removeal
                 $RemoveAppx = Remove-AppxProvisionedPackage -PackageName $AppProvisioningPackageName -Online -AllUsers
@@ -79,10 +80,12 @@ Begin {
                 If ([string]::IsNullOrEmpty($AppProvisioningPackageNameReCheck) -and ($RemoveAppx.Online -eq $true)) {
                     Write-Host @CheckIcon
                     Write-Host " (Removed)"
+                    Write-LogEntry -Value "$($BlackListedApp) removed"
                 }
             }
             catch [System.Exception] {
                 Write-Host " (Failed)"
+                Write-LogEntry -Value "Failed to remove $($BlackListedApp)"
             }
         }
     }
