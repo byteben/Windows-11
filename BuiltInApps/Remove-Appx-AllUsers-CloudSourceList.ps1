@@ -27,9 +27,74 @@
 
 Begin {
 
+    #Log Function
+    function Write-LogEntry {
+        param (
+            [parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Value,
+            [parameter(Mandatory = $false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$FileName = "AppXRemoval.log",
+            [switch]$Stamp
+        )
+    
+        #Build Log File appending System Date/Time to output
+        $LogFile = Join-Path -Path $env:SystemRoot -ChildPath $("Temp\$FileName")
+        $Time = -join @((Get-Date -Format "HH:mm:ss.fff"), " ", (Get-WmiObject -Class Win32_TimeZone | Select-Object -ExpandProperty Bias))
+        $Date = (Get-Date -Format "MM-dd-yyyy")
+    
+        If ($Stamp) {
+            $LogText = "<$($Value)> <time=""$($Time)"" date=""$($Date)"">"
+        }
+        else {
+            $LogText = "$($Value)"   
+        }
+        
+        Try {
+            Out-File -InputObject $LogText -Append -NoClobber -Encoding Default -FilePath $LogFile -ErrorAction Stop
+        }
+        Catch [System.Exception] {
+            Write-Warning -Message "Unable to add log entry to $LogFile.log file. Error message at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)"
+        }
+    }
+    
+    #Function to Remove AppxProvisionedPackage
+    Function Remove-AppxProvisionedPackageCustom {
+    
+        # Attempt to remove AppxProvisioningPackage
+        if (!([string]::IsNullOrEmpty($BlackListedApp))) {
+            try {
+                
+                # Get Package Name
+                $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
+                Write-Host "$($BlackListedApp) found. Attempting removal ... " -NoNewline
+    
+                # Attempt removeal
+                $RemoveAppx = Remove-AppxProvisionedPackage -PackageName $AppProvisioningPackageName -Online -AllUsers
+                    
+                #Re-check existence
+                $AppProvisioningPackageNameReCheck = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
+    
+                If ([string]::IsNullOrEmpty($AppProvisioningPackageNameReCheck) -and ($RemoveAppx.Online -eq $true)) {
+                    Write-Host @CheckIcon
+                    Write-Host " (Removed)"
+                }
+            }
+            catch [System.Exception] {
+                Write-Host " (Failed)"
+            }
+        }
+    }
+
+    Write-LogEntry -Value "##################################"
+    Write-LogEntry -Stamp -Value "Remove-Appx Started"
+    Write-LogEntry -Value "##################################"
+
     # Black List of Appx Provisioned Packages to Remove for All Users
     $BlackListedAppsURL = $null
     $BlackListedAppsURL = "https://raw.githubusercontent.com/byteben/Windows-11/main/BuiltInApps/blacklist_w11.txt"
+    Write-LogEntry -Value "BlackListedAppsURL:$($BlackListedAppsURL)"
 
     #Attempt to obtain list of BlackListedApps
     Try {
@@ -61,40 +126,14 @@ Begin {
     #Define App Count
     [int]$AppCount = 0
 
-    #Function to Remove AppxProvisionedPackage
-    Function Remove-AppxProvisionedPackageCustom {
-
-        # Attempt to remove AppxProvisioningPackage
-        if (!([string]::IsNullOrEmpty($BlackListedApp))) {
-            try {
-            
-                # Get Package Name
-                $AppProvisioningPackageName = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
-                Write-Host "$($BlackListedApp) found. Attempting removal ... " -NoNewline
-
-                # Attempt removeal
-                $RemoveAppx = Remove-AppxProvisionedPackage -PackageName $AppProvisioningPackageName -Online -AllUsers
-                
-                #Re-check existence
-                $AppProvisioningPackageNameReCheck = Get-AppxProvisionedPackage -Online | Where-Object { $_.DisplayName -like $BlackListedApp } | Select-Object -ExpandProperty PackageName -First 1
-
-                If ([string]::IsNullOrEmpty($AppProvisioningPackageNameReCheck) -and ($RemoveAppx.Online -eq $true)) {
-                    Write-Host @CheckIcon
-                    Write-Host " (Removed)"
-                }
-            }
-            catch [System.Exception] {
-                Write-Host " (Failed)"
-            }
-        }
-    }
-
     #OS Check
     $OS = (Get-CimInstance -ClassName Win32_OperatingSystem).BuildNumber
     Switch -Wildcard ( $OS ) {
         '21*' {
             $OSVer = "Windows 10"
             Write-Warning "This script is intended for use on Windows 11 devices. $($OSVer) was detected..."
+            Write-LogEntry -Value "This script is intended for use on Windows 11 devices. $($OSVer) was detected..."
+
             Exit 1
         }
     }
@@ -105,6 +144,8 @@ Process {
     If ($($BlackListedAppsArray.Count) -ne 0) {
 
         Write-Output `n"The following $($BlackListedAppsArray.Count) apps were targeted for removal from the device:-"
+        Write-LogEntry -Value "The following $($BlackListedAppsArray.Count) apps were targeted for removal from the device:-"
+        Write-LogEntry -Value "Apps marked for removal:$($BlackListedAppsArray)"
         Write-Output ""
         $BlackListedAppsArray
 
@@ -113,6 +154,7 @@ Process {
 
         # Get Appx Provisioned Packages
         Write-Output `n"Gathering installed Appx Provisioned Packages..."
+        Write-LogEntry -Value "Gathering installed Appx Provisioned Packages..."
         Write-Output ""
         $AppArray = Get-AppxProvisionedPackage -Online | Select-Object -ExpandProperty DisplayName
 
@@ -122,7 +164,13 @@ Process {
             # Function call to Remove Appx Provisioned Packages defined in the Black List
             if (($BlackListedApp -in $AppArray)) {
                 $AppCount ++
-                Remove-AppxProvisionedPackageCustom -BlackListedApp $BlackListedApp
+                Try {
+                    Remove-AppxProvisionedPackageCustom -BlackListedApp $BlackListedApp -ErrorAction Stop
+                }
+                Catch {
+                    Write-Warning `n"There was an error while attempting to remove $($BlakListedApp)"
+                    Write-LogEntry -Value "There was an error when attempting to remove $($BlakListedApp)"
+                }
             }
             else {
                 $AppNotTargetedList.AddRange(@($BlackListedApp))
@@ -132,14 +180,18 @@ Process {
         #Update Output Information
         If (!([string]::IsNullOrEmpty($AppNotTargetedList))) { 
             Write-Output `n"The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-LogEntry -Value "The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-LogEntry -Value "$($AppNotTargetedList)"
             Write-Output ""
             $AppNotTargetedList
         }
         If ($AppCount -eq 0) {
             Write-Output `n"No apps were removed. Most likely reason is they had been removed previously."
+            Write-LogEntry -Value "No apps were removed. Most likely reason is they had been removed previously."
         }
     }
     else {
         Write-Output "No Black List Apps defined in array"
+        Write-LogEntry -Value "No Black List Apps defined in array"
     }
 }
