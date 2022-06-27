@@ -183,8 +183,8 @@ Process {
 
         #Update Output Information
         If (!([string]::IsNullOrEmpty($AppNotTargetedList))) { 
-            Write-Output `n"The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
-            Write-LogEntry -Value "The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-Output `n"The following apps were not removed. Either they were already removed or the Package Name is invalid:-"
+            Write-LogEntry -Value "The following apps were not removed. Either they were already removed or the Package Name is invalid:-"
             Write-LogEntry -Value "$($AppNotTargetedList)"
             Write-Output ""
             $AppNotTargetedList
