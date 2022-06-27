@@ -4,24 +4,24 @@
 
 .DESCRIPTION
     This script will remove all built-in apps with a provisioning package that are specified in the 'blacklistedapps' variable.
-    The Black list (txt file) is hosted in Azure Blob storage or GitHub so it can be dynamically update
-    Built-in apps listed in the txt file that are not prefixed with a # will be considered eligible for removal
+    The Black list (txt file) is hosted in Azure Blob storage or GitHub so it can be dynamically updated.
+    Built-in apps listed in the txt file that are prefixed with a # will be considered eligible for removal.
 
     ##WARNING## 
     Use with caution, restoring deleted proisioning packages is not a simple process.
 
     ##TIP##
-    If removing "MicrosoftTeams", also consider disabling the "Chat" icon on the taskbar as clicking this will re-install the appxpackage for the user.
+    If removing "MicrosoftTeams", also consider disabling the "Chat" icon on the taskbar, using INtune settingd catalog, as clicking this will re-install the appxpackage for the user.
 
 .NOTES
 
-    Based on original script / Credit to: Nickolaj Andersen @ MSEndpointMgr
+    Idea based on an original script for Windows 10 app removal / Credit to: Nickolaj Andersen @ MSEndpointMgr
     Modifications to original script to Black list Appx instead of Whitelist
 
     FileName:    Remove-Appx-AllUsers-CloudSourceList.ps1
     Author:      Ben Whitmore
     Contact:     @byteben
-    Date:        23rd May 2022
+    Date:        27th June 2022
 
 #>
 
@@ -46,7 +46,7 @@ Begin {
     #Create array of bad apps
     $BlackListedAppsArray = New-Object -TypeName System.Collections.ArrayList
     Foreach ($App in $BlackListedAppsConvertToArray) {
-        If (!($App -like "#*")) {
+        If ($App -like "#*") {
             $BlackListedAppsArray.AddRange(@($App))
         }
     }
