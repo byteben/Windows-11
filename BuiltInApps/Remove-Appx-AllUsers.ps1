@@ -1,26 +1,25 @@
 <#
 .SYNOPSIS
     Remove built-in apps (modern apps) from Windows 11 for All Users.
+
 .DESCRIPTION
-    This script will remove all built-in apps with a provisioning package that are specified in the 'black-list' in this script.
+    This script will remove all built-in apps that are specified in the 'blacklistedapps' variable.
 
     ##WARNING## 
-    Use with caution, restoring deleted proisioning packages is not a simple process.
+    Use with caution, restoring deleted provisioning packages is not a simple process.
 
     ##TIP##
-    If removing "MicrosoftTeams", also consider disabling the "Chat" icon on the taskbar as clicking this will re-install the appxpackage for the user.
+    If removing "MicrosoftTeams", also consider disabling the "Chat" icon on the taskbar, using INtune settingd catalog, as clicking this will re-install the appxpackage for the user.
 
-    .EXAMPLE
-    .\Remove-Appx-AllUsers.ps1
 .NOTES
 
-    Based on original script / Credit to: Nickolaj Andersen @ MSEndpointMgr
+    Idea based on an original script for Windows 10 app removal / Credit to: Nickolaj Andersen @ MSEndpointMgr
     Modifications to original script to Black list Appx instead of Whitelist
 
-    FileName:    Remove-Appx-AllUsers.ps1
+    FileName:    Remove-Appx-AllUsers-CloudSourceList.ps1
     Author:      Ben Whitmore
     Contact:     @byteben
-    Date:        23rd May 2022
+    Date:        27th June 2022
 
 ###### Windows 11 Apps######
 
@@ -73,34 +72,37 @@ MicrosoftWindows.Client.WebExperience
 
 Begin {
 
-    # Black List of Appx Provisioned Packages to Remove for All Users
-    $BlackListedApps = $null
-    $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
-    $BlackListedApps.AddRange(@(
-            "Microsoft.BingNews",
-            "Microsoft.GamingApp",
-            "Microsoft.MicrosoftSolitaireCollection",
-            "Microsoft.WindowsCommunicationsApps",
-            "Microsoft.WindowsFeedbackHub",
-            "Microsoft.XboxGameOverlay",
-            "Microsoft.XboxGamingOverlay",
-            "Microsoft.XboxIdentityProvider",
-            "Microsoft.XboxSpeechToTextOverlay",
-            "Microsoft.YourPhone",
-            "Microsoft.ZuneMusic",
-            "Microsoft.ZuneVideo",
-            "MicrosoftTeams"
-        ))
-
-    #Define Icons
-    $CheckIcon = @{
-        Object          = [Char]8730
-        ForegroundColor = 'Green'
-        NoNewLine       = $true
+    #Log Function
+    function Write-LogEntry {
+        param (
+            [parameter(Mandatory = $true)]
+            [ValidateNotNullOrEmpty()]
+            [string]$Value,
+            [parameter(Mandatory = $false)]
+            [ValidateNotNullOrEmpty()]
+            [string]$FileName = "AppXRemoval.log",
+            [switch]$Stamp
+        )
+    
+        #Build Log File appending System Date/Time to output
+        $LogFile = Join-Path -Path $env:SystemRoot -ChildPath $("Temp\$FileName")
+        $Time = -join @((Get-Date -Format "HH:mm:ss.fff"), " ", (Get-WmiObject -Class Win32_TimeZone | Select-Object -ExpandProperty Bias))
+        $Date = (Get-Date -Format "MM-dd-yyyy")
+    
+        If ($Stamp) {
+            $LogText = "<$($Value)> <time=""$($Time)"" date=""$($Date)"">"
+        }
+        else {
+            $LogText = "$($Value)"   
+        }
+        
+        Try {
+            Out-File -InputObject $LogText -Append -NoClobber -Encoding Default -FilePath $LogFile -ErrorAction Stop
+        }
+        Catch [System.Exception] {
+            Write-Warning -Message "Unable to add log entry to $LogFile.log file. Error message at line $($_.InvocationInfo.ScriptLineNumber): $($_.Exception.Message)"
+        }
     }
-
-    #Define App Count
-    [int]$AppCount = 0
 
     #Function to Remove AppxProvisionedPackage
     Function Remove-AppxProvisionedPackageCustom {
@@ -139,6 +141,34 @@ Begin {
             Exit 1
         }
     }
+    # Black List of Appx Provisioned Packages to Remove for All Users
+    $BlackListedApps = $null
+    $BlackListedApps = New-Object -TypeName System.Collections.ArrayList
+    $BlackListedApps.AddRange(@(
+            "Microsoft.BingNews",
+            "Microsoft.GamingApp",
+            "Microsoft.MicrosoftSolitaireCollection",
+            "Microsoft.WindowsCommunicationsApps",
+            "Microsoft.WindowsFeedbackHub",
+            "Microsoft.XboxGameOverlay",
+            "Microsoft.XboxGamingOverlay",
+            "Microsoft.XboxIdentityProvider",
+            "Microsoft.XboxSpeechToTextOverlay",
+            "Microsoft.YourPhone",
+            "Microsoft.ZuneMusic",
+            "Microsoft.ZuneVideo",
+            "MicrosoftTeams"
+        ))
+ 
+    #Define Icons
+    $CheckIcon = @{
+        Object          = [Char]8730
+        ForegroundColor = 'Green'
+        NoNewLine       = $true
+    }
+ 
+    #Define App Count
+    [int]$AppCount = 0
 }
 
 Process {
@@ -146,6 +176,8 @@ Process {
     If ($($BlackListedApps.Count) -ne 0) {
 
         Write-Output `n"The following $($BlackListedApps.Count) apps were targeted for removal from the device:-"
+        Write-LogEntry -Value "The following $($BlackListedApps.Count) apps were targeted for removal from the device:-"
+        Write-LogEntry -Value "Apps marked for removal:$($BlackListedApps)"
         Write-Output ""
         $BlackListedApps
 
@@ -154,6 +186,7 @@ Process {
 
         # Get Appx Provisioned Packages
         Write-Output `n"Gathering installed Appx Provisioned Packages..."
+        Write-LogEntry -Value "Gathering installed Appx Provisioned Packages..."
         Write-Output ""
         $AppArray = Get-AppxProvisionedPackage -Online | Select-Object -ExpandProperty DisplayName
 
@@ -163,7 +196,13 @@ Process {
             # Function call to Remove Appx Provisioned Packages defined in the Black List
             if (($BlackListedApp -in $AppArray)) {
                 $AppCount ++
-                Remove-AppxProvisionedPackageCustom -BlackListedApp $BlackListedApp
+                Try {
+                    Remove-AppxProvisionedPackageCustom -BlackListedApp $BlackListedApp
+                }
+                Catch {
+                    Write-Warning `n"There was an error while attempting to remove $($BlakListedApp)"
+                    Write-LogEntry -Value "There was an error when attempting to remove $($BlakListedApp)"
+                }
             }
             else {
                 $AppNotTargetedList.AddRange(@($BlackListedApp))
@@ -173,14 +212,18 @@ Process {
         #Update Output Information
         If (!([string]::IsNullOrEmpty($AppNotTargetedList))) { 
             Write-Output `n"The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-LogEntry -Value "The following apps were not removed. Either they were already moved or the Package Name is invalid:-"
+            Write-LogEntry -Value "$($AppNotTargetedList)"
             Write-Output ""
             $AppNotTargetedList
         }
         If ($AppCount -eq 0) {
             Write-Output `n"No apps were removed. Most likely reason is they had been removed previously."
+            Write-LogEntry -Value "No apps were removed. Most likely reason is they had been removed previously."
         }
     }
     else {
         Write-Output "No Black List Apps defined in array"
+        Write-LogEntry -Value "No Black List Apps defined in array"
     }
 }
