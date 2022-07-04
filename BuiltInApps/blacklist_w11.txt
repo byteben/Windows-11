@@ -6,7 +6,7 @@ Microsoft.549981C3F5F10
 #Microsoft.BingWeather
 Microsoft.DesktopAppInstaller
 #Microsoft.GamingApp
-Microsoft.GetHelp
+#Microsoft.GetHelp
 #Microsoft.Getstarted
 Microsoft.HEIFImageExtension
 Microsoft.MicrosoftEdge.Stable
