@@ -7,7 +7,7 @@ Microsoft.549981C3F5F10
 Microsoft.DesktopAppInstaller
 #Microsoft.GamingApp
 Microsoft.GetHelp
-Microsoft.Getstarted
+#Microsoft.Getstarted
 Microsoft.HEIFImageExtension
 Microsoft.MicrosoftEdge.Stable
 #Microsoft.MicrosoftOfficeHub
