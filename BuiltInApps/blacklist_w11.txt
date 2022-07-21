@@ -1,4 +1,3 @@
-Built-in apps listed below that are not prefixed with a  will be considered eligible for removal
 Prefix item with # to mark it for removal
 
 Microsoft.549981C3F5F10
