@@ -702,9 +702,6 @@ function Invoke-CertificateProcessing {
     }
 
     # Process OIDs based on the certificate type and OID list passed in.
-    # Each known OID produces TWO output fields:
-    #   <OidName>    - the decoded human-readable value (GUID, join type, region, etc.)
-    #   <OidName>Raw - the raw extension bytes as a hex string (for auditing/debugging)
     foreach ($extension in $cert.Extensions) {
         if ($OidList.ContainsKey($extension.Oid.Value)) {
             Write-Verbose "Processing OID: $($extension.Oid.Value)"
